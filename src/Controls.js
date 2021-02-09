@@ -8,6 +8,7 @@ export const Controls = ({
 }) => (
   <div className={`${className && className + ' '}Controls`}>
     <div className="Controls__item">
+      <label>Min</label>
       <input
         name="min"
         type="number"
@@ -17,6 +18,7 @@ export const Controls = ({
       />
     </div>
     <div className="Controls__item">
+      <label>Max</label>
       <input
         name="max"
         type="number"
@@ -26,6 +28,7 @@ export const Controls = ({
       />
     </div>
     <div className="Controls__item">
+      <label>Mean</label>
       <input
         name="mean"
         type="number"
@@ -35,6 +38,7 @@ export const Controls = ({
       />
     </div>
     <div className="Controls__item">
+      <label>Standart Deviation</label>
       <input
         name="std"
         type="number"

@@ -17,100 +17,106 @@ export const BellCurve = () => {
     setFormValue((form) => ({ ...form, [name]: value }));
   };
 
-
   const handleRefresh = () => {
-    setFormValue((form)=> ({...form}));
-  }
+    setFormValue((form) => ({ ...form }));
+  };
 
   useEffect(() => {
     const container = containerRef.current;
 
+    function getProbabilityData(normalizedData, m, v) {
+      const data = [];
+      for (var i = 0; i < normalizedData.length; ++i) {
+        var q = normalizedData[i],
+          p = probabilityDensityCalculation(q, m, v),
+          el = {
+            q: q,
+            p: p,
+          };
+        data.push(el);
+      }
+      data.sort((x, y) => x.q - y.q);
+      return data;
+    }
+
+    function probabilityDensityCalculation(x, mean, variance) {
+      var m = Math.sqrt(2 * Math.PI * variance);
+      var e = Math.exp(-Math.pow(x - mean, 2) / (2 * variance));
+      return e / m;
+    }
+
     const margin = {
-        top: 20,
-        right: 20,
-        bottom: 30,
-        left: 50,
-      };
+      top: 20,
+      right: 20,
+      bottom: 30,
+      left: 50,
+    };
 
     const width = 1000 - margin.left - margin.right;
     const height = 500 - margin.top - margin.bottom;
     const series = ['Factic', 'Ideal'];
 
     var color = d3.scaleOrdinal(d3.schemeCategory10);
-    color.domain(series); 
+    color.domain(series);
     var formatCount = d3.format(',.0f');
 
+    const numberOfBuckets = 25;
     const numberOfDataPoints = 1000;
 
     const { mean = 0, max = 0, min = 0, std: stdDeviation = 0 } = form;
 
-    var normalDistributionFunction = d3.randomNormal(mean, stdDeviation);
+    const normalDistributionFunction = d3.randomNormal(mean, stdDeviation);
+  
     const actualData = d3
       .range(numberOfDataPoints)
       .map(normalDistributionFunction);
     const sum = d3.sum(actualData);
-    
+
     const probability = 1 / numberOfDataPoints;
-    
     const variance = sum * probability * (1 - probability);
-    
+
     const idealData = getProbabilityData(actualData, mean, variance);
- 
-    var x = d3.scaleLinear().range([0, width]).domain([min, max]);
-    var dataBar = d3.bin()(actualData);
-       
-    var yMax = d3.max(dataBar, function (d) {
-      return d.length;
-    }); 
-    
-    var y = d3.scaleLinear().domain([0, yMax]).range([height, 0]);
+    const dataBar = d3.bin().thresholds(numberOfBuckets)(actualData);
 
-    var xAxis = d3
-      .axisBottom()
-      .scale(x)
-      .ticks(10);
-    
-    var yAxis = d3
-      .axisLeft()
-      .scale(y)
-      .tickFormat(d3.format('.1s'));
+    const x = d3.scaleLinear().range([0, width]).domain([min, max]);
+    const y = d3.scaleLinear().range([height, 0]).domain([min, max]);
 
-    var xNormal = d3
-      .scaleLinear()
-      .range([0, width])
-      .domain(
-        d3.extent(idealData, function (d) {
-          return d.q;
-        })
-      );
+    const xAxis = d3.axisBottom().scale(x).ticks(10); 
+    const yAxis = d3.axisLeft().scale(y).tickFormat(d3.format('.2s'));
 
-    var yNormal = d3.scaleLinear()
-      .range([height, 0])
-      .domain(
-        d3.extent(idealData, function (d) {
-          return d.p;
-        })
-      );
+    const xNormal = d3
+      .scaleLinear()      
+      .domain([min, max])
+      .range([0, width]);
 
-    var linePlot = d3
+    const toDomain =  d3.extent(idealData, function (d) {
+      return d.p;
+    });
+    const yNormal = d3
+      .scaleLinear()      
+      .domain(toDomain)
+      .range([height, 0]);
+    // Line
+    const linePlot = d3
       .line()
       .x(function (d) {
-        return xNormal(d.q); 
+        return xNormal(d.q);
       })
       .y(function (d) {
         return yNormal(d.p);
       });
 
     const curveContainer = d3.select(container);
-    d3.select("svg").remove();
-    var svg = curveContainer
+    d3.select('svg').remove();
+    // Svg
+    const svg = curveContainer
       .append('svg')
       .attr('width', width + margin.left + margin.right)
       .attr('height', height + margin.top + margin.bottom)
       .append('g')
       .attr('fill', 'white')
       .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
-
+    // Bar
     const bar = svg
       .selectAll('.bar')
       .data(dataBar)
@@ -120,23 +126,25 @@ export const BellCurve = () => {
       .attr('transform', function (d) {
         return 'translate(' + x(d.x0) + ',' + y(d.length) + ')';
       });
-      bar
-        .append('rect')
-        .attr('x', 1)
-        .attr('width', function (d) {
-          return  (x(d.x1-d.x0) - x(0)) <= 0 ? 0 : (x(d.x1-d.x0) - x(0)) - 1;
-        })
-        .attr('height', function (d) {
-          return height - y(d.length);
-        })
-        .attr('fill', function () {
-          return color(series[0]);
-        });
+    // Bar Rect
+    bar
+      .append('rect')
+      .attr('x', 1)
+      .attr('width', function (d) {
+        return x(d.x1) - x(d.x0) -1;
+      })
+      .attr('height', function (d) {
+        return height - y(d.length);
+      })
+      .attr('fill', function () {
+        return color(series[0]);
+      });
+    // Bar Text
     bar
       .append('text')
       .attr('dy', '.75em')
       .attr('y', -12)
-      .attr('x', (x(dataBar[0].x0) - x(0)) / 2)
+      .attr('x', (x(dataBar[0].x1 - dataBar[0].x0) - x(0)) / 2)
       .attr('text-anchor', 'middle')
       .text(function (d) {
         return formatCount(d.x0);
@@ -144,7 +152,7 @@ export const BellCurve = () => {
 
     const lines = svg
       .selectAll('.series')
-      .data([1])
+      .data([0])
       .enter()
       .append('g')
       .attr('class', 'series');
@@ -159,38 +167,44 @@ export const BellCurve = () => {
       })
       .style({ 'stroke-width': '2px', fill: 'none' });
 
+    function draggedMean(event) { 
+      setFormValue((form) => ({ ...form, mean: x.invert(event.x) }));
+    }
+
+    function draggedStd(event) {
+      setFormValue((form) => ({ ...form, std: x.invert(event.x) }));
+    }
+
+    const dragMean = d3.drag().on('drag', draggedMean);
+
+    const dragStd = d3.drag().on('drag', draggedStd);
+
+    lines
+      .append('circle')
+      .attr('class', 'MeanAnchor')
+      .attr('r', 3)
+      .attr('transform', function (d) {
+        return 'translate(' + x(mean) + ',' + 0 + ')';
+      })
+      .call(dragMean);
+
+    lines
+      .append('circle')
+      .attr('class', 'MeanAnchor')
+      .attr('r', 3)
+      .attr('transform', function (d) {
+        return 'translate(' + x(stdDeviation) + ',' + (height / 2) + ')';
+      })
+      .call(dragStd);
+
     svg
       .append('g')
       .attr('class', 'x axis')
       .attr('transform', 'translate(0,' + height + ')')
       .call(xAxis);
     // Add the Y Axis
-  
-    svg.append('g').attr('class', 'y axis').call(yAxis);
-  
-    function getProbabilityData(normalizedData, m, v) {
-      var data = [];
-      // probabily - quantile pairs
-      for (var i = 0; i < normalizedData.length; i += 1) {
-        var q = normalizedData[i],
-          p = probabilityDensityCalculation(q, m, v),
-          el = {
-            q: q,
-            p: p,
-          };
-        data.push(el);
-      }
-      data.sort(function (x, y) {
-        return x.q - y.q;
-      });
-      return data;
-    }
-    function probabilityDensityCalculation(x, mean, variance) {
-      var m = Math.sqrt(2 * Math.PI * variance);
-      var e = Math.exp(-Math.pow(x - mean, 2) / (2 * variance));
-      return e / m;
-    }
- 
+
+    svg.append('g').attr('class', 'y axis').call(yAxis);  
   }, [form]);
 
   return (

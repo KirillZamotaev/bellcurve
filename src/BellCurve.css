@@ -16,9 +16,25 @@ body {
   display: flex;
   padding: 10px;
   flex-wrap: wrap;
-  max-width: 500px;
+  align-items: center;
+  justify-content: center;
 }
-
+ 
 .Controls__item {
   padding: 10px;
+  display: flex;  
+  justify-content: center;
 }
+
+.Controls__item label {
+  padding: 10px;
+}
+
+
+.MeanAnchor {
+  fill: black;
+};
+
+.DeviationAnchor {
+  fill: yellow;
+};
