@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import * as d3 from 'd3';
 import { Controls } from './Controls';
+import { getProbabilityData, probabilityDensityCalculation } from './utils';
 import './BellCurve.css';
 
 export const BellCurve = () => {
@@ -10,6 +11,7 @@ export const BellCurve = () => {
     min: 0,
     std: 5,
   });
+
   const containerRef = useRef(null);
 
   const handleInput = (e) => {
@@ -21,29 +23,8 @@ export const BellCurve = () => {
     setFormValue((form) => ({ ...form }));
   };
 
-  useEffect(() => {
+  const buildChart = () => {    
     const container = containerRef.current;
-
-    function getProbabilityData(normalizedData, m, v) {
-      const data = [];
-      for (var i = 0; i < normalizedData.length; ++i) {
-        var q = normalizedData[i],
-          p = probabilityDensityCalculation(q, m, v),
-          el = {
-            q: q,
-            p: p,
-          };
-        data.push(el);
-      }
-      data.sort((x, y) => x.q - y.q);
-      return data;
-    }
-
-    function probabilityDensityCalculation(x, mean, variance) {
-      var m = Math.sqrt(2 * Math.PI * variance);
-      var e = Math.exp(-Math.pow(x - mean, 2) / (2 * variance));
-      return e / m;
-    }
 
     const margin = {
       top: 20,
@@ -92,6 +73,7 @@ export const BellCurve = () => {
     const toDomain =  d3.extent(idealData, function (d) {
       return d.p;
     });
+
     const yNormal = d3
       .scaleLinear()      
       .domain(toDomain)
@@ -167,22 +149,24 @@ export const BellCurve = () => {
       })
       .style({ 'stroke-width': '2px', fill: 'none' });
 
-    function draggedMean(event) { 
-      setFormValue((form) => ({ ...form, mean: x.invert(event.x) }));
+    const draggedMean = (event) => {
+      setFormValue((form) => ({ ...form, mean: x.invert(event.x) - 20 }));
     }
 
-    function draggedStd(event) {
+    const draggedStd = (event) => {
       setFormValue((form) => ({ ...form, std: x.invert(event.x) }));
     }
 
-    const dragMean = d3.drag().on('drag', draggedMean);
-
+    const dragMean = d3.drag()
+    .on("start", draggedMean)
+    .on("drag", draggedMean)
+    .on("end", draggedMean)
     const dragStd = d3.drag().on('drag', draggedStd);
 
     lines
       .append('circle')
       .attr('class', 'MeanAnchor')
-      .attr('r', 3)
+      .attr('r', 8)
       .attr('transform', function (d) {
         return 'translate(' + x(mean) + ',' + 0 + ')';
       })
@@ -190,8 +174,8 @@ export const BellCurve = () => {
 
     lines
       .append('circle')
-      .attr('class', 'MeanAnchor')
-      .attr('r', 3)
+      .attr('class', 'StdAnchor')
+      .attr('r', 8)
       .attr('transform', function (d) {
         return 'translate(' + x(stdDeviation) + ',' + (height / 2) + ')';
       })
@@ -205,6 +189,10 @@ export const BellCurve = () => {
     // Add the Y Axis
 
     svg.append('g').attr('class', 'y axis').call(yAxis);  
+  }
+ 
+  useEffect(() => {
+    buildChart();
   }, [form]);
 
   return (

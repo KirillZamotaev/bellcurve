@@ -26,15 +26,14 @@ body {
   justify-content: center;
 }
 
-.Controls__item label {
+.Controls__item > label {
   padding: 10px;
 }
 
-
 .MeanAnchor {
   fill: black;
-};
+}
 
-.DeviationAnchor {
-  fill: yellow;
-};
+.StdAnchor {
+  fill: red;
+}
