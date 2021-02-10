@@ -177,7 +177,7 @@ export const BellCurve = () => {
       .attr('class', 'StdAnchor')
       .attr('r', 8)
       .attr('transform', function (d) {
-        return 'translate(' + x(stdDeviation) + ',' + (height / 2) + ')';
+        return 'translate(' + x(stdDeviation) + ',' + (height) + ')';
       })
       .call(dragStd);
 
